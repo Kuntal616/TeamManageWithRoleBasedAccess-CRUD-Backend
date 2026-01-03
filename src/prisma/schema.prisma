@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User model with role and team association
+//1:1 relation between User and Team (models are connected via teamId in User model)
+// Each user can belong to one team, and each team can have multiple users
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(USER)
+  // Relations
+  teamId    String?
+  team      Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes
+  @@index([email])
+  @@index([role])
+  @@index([teamId])
+  //map
+  @@map("users")
+}
+
+//1:N relation between Team and User
+model Team {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  code        String  @unique
+  members     User[]  
+  // Relations
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes
+
+  //map
+  @@map("teams")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  USER
+  GUEST
+}
