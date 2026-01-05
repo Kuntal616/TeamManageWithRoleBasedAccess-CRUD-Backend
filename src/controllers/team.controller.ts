@@ -189,8 +189,7 @@ export const handleTeamList = async (req: Request, res: Response) => {
         { description: { contains: search, mode: "insensitive" } },
       ];
     }
-    const teams = await prisma.team.findMany;
-    ({
+    const teams = await prisma.team.findMany({
       where: search ? filter : {},
       include: {
         _count: { select: { members: true } },
