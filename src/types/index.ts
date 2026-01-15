@@ -27,6 +27,7 @@ export interface User {
   comments?: Comment[];
   teamId?: string;
   team?: Team;
+  projectsCreated?: Project[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +48,8 @@ export interface Project {
   teamId: string;
   team: Team;
   tasks: Task[];
+  createdById: string;
+  createdBy: User;
   createdAt: Date;
   updatedAt: Date;
 }
