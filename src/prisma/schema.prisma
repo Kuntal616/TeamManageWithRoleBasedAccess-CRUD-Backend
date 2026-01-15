@@ -11,17 +11,19 @@ datasource db {
 //1:1 relation between User and Team (models are connected via teamId in User model)
 // Each user can belong to one team, and each team can have multiple users
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String    @id @default(cuid())
+  email     String    @unique
   password  String
   name      String
-  role      Role     @default(USER)
+  role      Role      @default(USER)
+  tasks     Task[] // 1:N relation between User and Task (asignee)
+  comments  Comment[] // 1:N relation between User and Comment (author)
   // Relations
   teamId    String?
-  team      Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  team      Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   // Indexes
   @@index([email])
@@ -33,21 +35,94 @@ model User {
 
 //1:N relation between Team and User
 model Team {
-  id          String  @id @default(cuid())
-  name        String  @unique
+  id          String    @id @default(cuid())
+  name        String    @unique
   description String?
-  code        String  @unique
-  members     User[]  
+  code        String    @unique
+  members     User[]
+  projects    Project[]
   // Relations
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Indexes
-
   //map
   @@map("teams")
+}
+
+//1:N relation between Team and Project
+model Project {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teamId])
+  @@map("projects")
+}
+
+//1:N relation between Project and Task
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(PENDING)
+  priority    TaskPriority @default(NORMAL)
+  dueTime     DateTime?
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  asigneeId String?
+  asignee   User?   @relation(fields: [asigneeId], references: [id], onDelete: SetNull)
+
+  comments Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([asigneeId])
+  @@map("tasks")
+}
+
+//1:N relation between Task and Comment
+model Comment {
+  id      String @id @default(cuid())
+  content String
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("comments")
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }
 
 enum Role {

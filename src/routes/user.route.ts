@@ -4,6 +4,7 @@ import {
   handleLogin,
   handleLogout,
   handleRegister,
+  handleUserRemoveFromTeam,
   handleUsers,
   handleUsersRoleAssign,
   handleUsersTeamAssign,
@@ -18,5 +19,5 @@ router.get("/me", getCurrentUser); // current user route
 router.get("/", handleUsers); // get all users route
 router.patch("/:userId/team", handleUsersTeamAssign); // team assignment route
 router.patch("/:userId/role", handleUsersRoleAssign); // role assignment route
-
+router.delete("/:userId/team", handleUserRemoveFromTeam); //user removed from team route
 export default router;

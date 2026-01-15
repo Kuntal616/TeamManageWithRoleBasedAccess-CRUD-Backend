@@ -11,6 +11,7 @@ import {
 import { prisma } from "../lib/db.js";
 import cookieOptions from "../lib/cookie.config.js";
 import type { Prisma } from "../generated/prisma/client.js";
+import { connect } from "node:http2";
 
 // Get Current Authenticated User
 
@@ -227,24 +228,41 @@ export const handleUsersTeamAssign = async (req: Request, res: Response) => {
     //only admin can assign team
     // checking team code are valid or not
     const { teamCode } = req.body;
-    let teamId: string | null = null;
     if (!teamCode) {
       return res.status(400).json({ error: "teamCode is required" });
     }
 
-    if (teamCode) {
-      const team = await prisma.team.findUnique({
-        where: { code: teamCode },
+    const team = await prisma.team.findUnique({
+      where: { code: teamCode },
+    });
+    if (!team) {
+      return res.status(404).json({ error: "Team code not found" });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId as string },
+      select: { teamId: true, role: true },
+    });
+    if (!targetUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (targetUser.role === Role.ADMIN) {
+      return res
+        .status(400)
+        .json({ error: "Cannot assign team to an admin user" });
+    }
+    if (targetUser.teamId !== null) {
+      return res.status(400).json({
+        error:
+          "User already belong to a team, Please remove from the current team before assigning to a new one",
       });
-      if (!team) {
-        return res.status(404).json({ error: "Team code not found" });
-      }
-      teamId = team.id;
     }
     const { password, ...updatedUser } = await prisma.user.update({
       where: { id: userId as string },
       data: {
-        teamId: teamId,
+        team: {
+          connect: { id: team.id },
+        },
       },
       include: {
         team: true,
@@ -252,7 +270,7 @@ export const handleUsersTeamAssign = async (req: Request, res: Response) => {
     });
     return res.status(200).json({
       user: updatedUser,
-      message: teamId
+      message: teamCode
         ? "User assigned to team successfully"
         : "user removed from team successfully",
     });
@@ -303,9 +321,14 @@ export const handleUsersRoleAssign = async (req: Request, res: Response) => {
             throw new Error("Cannot demote the last admin user");
           }
         }
+        const updateData: Prisma.UserUpdateInput = { role };
+        if (role === Role.ADMIN) {
+          updateData.team = { disconnect: true }; //admins don't belong to any team
+          // disconnect mainly sets the teamId to null here
+        }
         return await tx.user.update({
           where: { id: userId as string },
-          data: { role },
+          data: updateData,
         });
       }
     );
@@ -329,6 +352,53 @@ export const handleUsersRoleAssign = async (req: Request, res: Response) => {
       error.message.includes("Cannot demote the last admin user")
     ) {
       return res.status(400).json({ error: error.message });
+    }
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Remove User from Team with Admin-Only Access
+export const handleUserRemoveFromTeam = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const user = await CheckUserAuth(req);
+    if (!user || !checkUserPermission(user, Role.ADMIN)) {
+      return res
+        .status(401)
+        .json({ error: "You are not authorized to remove user from team" });
+    }
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId as string },
+      select: { teamId: true, role: true },
+    });
+    if (!targetUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (targetUser.role === Role.ADMIN) {
+      return res
+        .status(400)
+        .json({ error: "Admin does not belongs to any team" });
+    }
+    if (targetUser.teamId === null) {
+      return res
+        .status(400)
+        .json({ error: "User does not belong to any team" });
+    }
+    const { password, ...updatedUser } = await prisma.user.update({
+      where: { id: userId as string },
+      data: { team: { disconnect: true } },
+    });
+    return res.status(200).json({
+      user: updatedUser,
+      message: "User removed from team successfully",
+    });
+  } catch (error) {
+    console.error("Error in handleUserRemoveFromTeam:", error);
+    if (
+      error instanceof Error &&
+      error.message.includes("Record to update not found.")
+    ) {
+      return res.status(404).json({ error: "User not found" });
     }
     return res.status(500).json({ error: "Internal server error" });
   }
