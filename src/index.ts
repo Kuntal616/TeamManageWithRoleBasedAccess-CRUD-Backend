@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import useHealthRoute from "./routes/health.route.js";
 import userRoute from "./routes/user.route.js";
 import teamRoute from "./routes/team.route.js";
+import projectRoute from "./routes/project.route.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -19,6 +20,7 @@ app.use("/api/teams", (req, res, next) => {
   req.baseUrl = "/api/team";
   teamRoute(req, res, next);
 });
+app.use("/api/project", projectRoute);
 
 app.get("/", (_, res) => {
   res.send("Hello, World!");
