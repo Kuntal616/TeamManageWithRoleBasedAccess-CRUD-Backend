@@ -27,3 +27,18 @@ export type User = Prisma.UserModel
  * 
  */
 export type Team = Prisma.TeamModel
+/**
+ * Model Project
+ * 
+ */
+export type Project = Prisma.ProjectModel
+/**
+ * Model Task
+ * 
+ */
+export type Task = Prisma.TaskModel
+/**
+ * Model Comment
+ * 
+ */
+export type Comment = Prisma.CommentModel
