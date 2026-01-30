@@ -16,7 +16,8 @@ model User {
   password        String
   name            String
   role            Role      @default(USER)
-  tasks           Task[] // 1:N relation between User and Task (assignee)
+  assignedTasks   Task[]    @relation("TaskAssignee") // 1:N relation between User and Task (assignee)
+  createdTasks    Task[]    @relation("TaskCreator") // 1:N relation between User and Task (creator)
   comments        Comment[] // 1:N relation between User and Comment (author)
   projectsCreated Project[] // 1:N relation between User and Project (creator)
   // Relations
@@ -57,12 +58,12 @@ model Team {
 // Each project is created by a user
 //each user can create multiple projects
 model Project {
-  id          String  @id @default(cuid())
+  id          String        @id @default(cuid())
   name        String
   description String?
-
-  teamId String
-  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  status      ProjectStatus @default(ACTIVE)
+  teamId      String
+  team        Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   tasks       Task[]
   createdById String
@@ -88,9 +89,11 @@ model Task {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   assigneeId String?
-  assignee   User?   @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
 
-  comments Comment[]
+  comments    Comment[]
+  createdById String
+  createdBy   User      @relation("TaskCreator", fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -115,6 +118,13 @@ model Comment {
   updatedAt DateTime @updatedAt
 
   @@map("comments")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
 }
 
 enum TaskStatus {

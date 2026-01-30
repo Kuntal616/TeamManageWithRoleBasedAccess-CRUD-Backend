@@ -18,12 +18,20 @@ export enum TaskPriority {
   URGENT = "URGENT",
 }
 
+export enum ProjectStatus {
+  ACTIVE = "ACTIVE",
+  ON_HOLD = "ON_HOLD",
+  COMPLETED = "COMPLETED",
+  ARCHIVED = "ARCHIVED",
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: Role;
-  tasks?: Task[];
+  assignedTasks?: Task[];
+  createdTasks?: Task[];
   comments?: Comment[];
   teamId?: string;
   team?: Team;
@@ -45,6 +53,7 @@ export interface Project {
   id: string;
   name: string;
   description?: string | null;
+  status: ProjectStatus;
   teamId: string;
   team: Team;
   tasks: Task[];
@@ -65,6 +74,8 @@ export interface Task {
   projectId: string;
   project: Project;
   comments: Comment[];
+  createdById: string;
+  createdBy: User;
   createdAt: Date;
   updatedAt: Date;
 }
