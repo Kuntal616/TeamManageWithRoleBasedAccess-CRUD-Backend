@@ -1,61 +1,170 @@
+# 🚀 Team Management Backend System
 
-# Team Management with Role
+<p align="center">
+  <b>Role-Based Access Control (RBAC) Backend for Teams, Projects & Tasks</b>
+</p>
 
-A backend project for managing team members and their assigned roles.
+<p align="center">
+  <img src="https://img.shields.io/badge/Node.js-18+-green" />
+  <img src="https://img.shields.io/badge/TypeScript-Strict-blue" />
+  <img src="https://img.shields.io/badge/Express.js-Backend-lightgrey" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Database-blue" />
+  <img src="https://img.shields.io/badge/Prisma-ORM-2D3748" />
+  <img src="https://img.shields.io/badge/Auth-JWT-orange" />
+  <img src="https://img.shields.io/badge/Status-Active%20Development-yellow" />
+</p>
 
-## Features
+---
 
-- Create and manage team members
-- Assign roles to team members
-- Role-based access control
-- Team organization and hierarchy
+## 📌 Overview
 
-## Getting Started
+A scalable backend system designed to manage users, teams, projects, and tasks with secure **Role-Based Access Control (RBAC)**.
 
-### Prerequisites
+The system models enterprise-style team collaboration, where permissions vary based on roles such as Admin, Manager, User, and Guest.
 
-- Node.js (v14+)
-- npm or yarn
+This project focuses on:
 
-### Installation
+Clean & modular backend architecture
+Secure authentication and authorization
+Relational database design
+Scalable CRUD operations
+Practical backend development patterns
+
+---
+
+## ✨ Core Features
+
+### 🔐 Authentication & Authorization
+- JWT-based authentication  
+- Cookie-based session handling  
+- Role-Based Access Control (ADMIN / MANAGER / USER / GUEST)  
+- Protected routes via middleware  
+
+---
+
+### 👥 User Management
+- User registration & login  
+- First registered user becomes ADMIN  
+- Assign/remove users from teams  
+- Admin-only role assignment  
+- Role-filtered user listing  
+
+---
+
+### 🏢 Team Management
+- Create, update, delete teams (Admin only)  
+- Unique team codes for joining  
+- Search teams by name/code  
+- View team members  
+- Automatic member cleanup on deletion  
+
+---
+
+### 📁 Project Management
+- Projects linked to teams  
+- Created-by tracking  
+- Unique project names per team  
+- Status support (Active, On Hold, Completed, Archived)  
+
+---
+
+### ✅ Task Management
+- Create tasks within projects  
+- Assign tasks to team members  
+- Track task creator  
+- Validation for team-based assignment  
+
+---
+
+## 🧱 Architecture
+
+src/
+│── controllers/
+│── routes/
+│── lib/
+
+
+
+Designed for scalability and maintainability.
+
+---
+
+## 🛠 Tech Stack
+
+**Backend**
+- Node.js  
+- Express.js  
+- TypeScript  
+
+**Database**
+- PostgreSQL  
+- Prisma ORM  
+
+**Authentication**
+- JWT  
+- Cookie-based sessions  
+
+**Tools**
+- Postman  
+- Nodemon  
+- Prisma Migrate  
+
+---
+
+## ⚙️ Installation & Setup
+
+###  Clone Repository
 
 ```bash
-git clone <repository-url>
-cd TeamManagementWithRole
+git clone https://github.com/Kuntal616/TeamManageWithRoleBasedAccess-CRUD-Backend.git
+cd TeamManageWithRoleBasedAccess-CRUD-Backend
+```
+###  Install Dependencies
+```bash
 npm install
 ```
+### Environment Variables
 
-### Running the Project
+Create .env file:
+```text
+DATABASE_URL=your_postgres_url
+JWT_SECRET=your_secret_key
+PORT=3000
+```
 
+### Prisma Setup
 ```bash
-npm start
+npm run db:migrate
+npm run db:generate
+```
+
+### Run Server
+```bash
 npm run dev
 ```
 
-## Project Structure
+### Server runs at:
+`http://localhost:3000`
 
+
+---
+
+🧪 API Testing
+
+Test endpoints using Postman.
+
+Example routes:
+
+```bash
+POST /api/user/register
+POST /api/user/login
+GET  /api/team
+POST /api/project
+POST /api/task
 ```
-├── src/
-│   ├── controllers/
-│   ├── models/
-│   ├── routes/
-│   └── middleware/
-├── tests/
-├── package.json
-└── README.md
-```
 
-## API Endpoints
+👨‍💻 Author
 
-- `GET /api/team` - List all team members
-- `POST /api/team` - Add new team member
-- `PUT /api/team/:id` - Update team member
-- `DELETE /api/team/:id` - Remove team member
-
-## Contributing
-
-Please follow the project guidelines and submit pull requests for any improvements.
-
-## License
-
-MIT
+Kuntal Sadhukhan
+GitHub: `https://github.com/Kuntal616`
+LinkedIn: `https://www.linkedin.com/in/dev-kuntalsadhukhan/`
