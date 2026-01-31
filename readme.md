@@ -77,12 +77,12 @@ Practical backend development patterns
 ---
 
 ## 🧱 Architecture
-
+```text
 src/
 │── controllers/
 │── routes/
 │── lib/
-
+```
 
 
 Designed for scalability and maintainability.
