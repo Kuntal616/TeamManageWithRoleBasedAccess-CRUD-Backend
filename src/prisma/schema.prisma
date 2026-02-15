@@ -23,9 +23,12 @@ model User {
   // Relations
   teamId          String?
   team            Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  resetToken       String?
+  resetTokenExpiry DateTime?
   // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // Indexes
   @@index([email])

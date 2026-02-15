@@ -1,17 +1,8 @@
 import type { Request, Response } from "express";
-import { Role, type User } from "../types/index.js";
-import {
-  checkUserPermission,
-  generateToken,
-  hashedPassword,
-  MAX_ADMINS,
-  verifyPassword,
-  CheckUserAuth,
-} from "../lib/auth.js";
+import { Role } from "../types/index.js";
+import { checkUserPermission, MAX_ADMINS, CheckUserAuth } from "../lib/auth.js";
 import { prisma } from "../lib/db.js";
-import cookieOptions from "../lib/cookie.config.js";
 import type { Prisma } from "../generated/prisma/client.js";
-import { connect } from "node:http2";
 
 // Get Current Authenticated User
 
@@ -28,135 +19,10 @@ export const getCurrentUser = async (req: Request, res: Response) => {
   }
 };
 
-// User Registration
-export const handleRegister = async (req: Request, res: Response) => {
-  try {
-    const { name, email, password, teamCode } = req.body;
-    // validate input
-    if (!name || !email || !password) {
-      return res
-        .status(400)
-        .json({ error: "Name,email and password are required or not valid" });
-    }
-    // check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return res
-        .status(409)
-        .json({ error: "User with this email already exists" });
-    }
-    //team association if team code is provided
-    let teamId: string | undefined;
-    if (teamCode) {
-      const team = await prisma.team.findUnique({
-        where: { code: teamCode },
-      });
-      if (!team) {
-        return res.status(400).json({ error: "Invalid team code" });
-      }
-      teamId = team.id;
-    }
-    // create user
-    const hashPassword = await hashedPassword(password);
-    const userCount = await prisma.user.count(); // to check if first user
-    const role = userCount === 0 ? Role.ADMIN : Role.USER;
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashPassword,
-        role,
-        ...(teamId && {
-          team: { connect: { id: teamId } },
-        }),
-      },
-      include: {
-        team: true,
-      },
-    });
-
-    // generate token for that user
-    const token = generateToken(newUser.id);
-
-    // respond with user data and set cookie
-    return res
-      .cookie("access_token", token, cookieOptions)
-      .status(201)
-      .json({
-        user: {
-          id: newUser.id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          team: newUser.team,
-          teamId: newUser.teamId,
-          token, // include token in response body for the development convenience
-        },
-        message: "Registration successful",
-      });
-  } catch (error) {
-    console.error("Error in handleRegister:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-};
-// User Login
-export const handleLogin = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
-    //validate input
-    if (!email || !password) {
-      return res.json({ error: "Email and password are required" }).status(400);
-    }
-    //check if user exists
-    const userFromDb = await prisma.user.findUnique({
-      where: { email },
-      include: { team: true },
-    });
-    if (!userFromDb) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-    //verify password
-    const isPasswordValid = await verifyPassword(password, userFromDb.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-    //generate token
-    const token = generateToken(userFromDb.id);
-    // respond with user data and set cookie
-    return res
-      .cookie("access_token", token, cookieOptions)
-      .status(200)
-      .json({
-        user: {
-          id: userFromDb.id,
-          name: userFromDb.name,
-          email: userFromDb.email,
-          role: userFromDb.role,
-          team: userFromDb.team,
-          teamId: userFromDb.teamId,
-          token, // include token in response body for the development convenience
-        },
-        message: "Login successful",
-      });
-  } catch (error) {
-    console.error("Error in handleLogin:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-};
-// User Logout
-export const handleLogout = async (req: Request, res: Response) => {
-  return res
-    .clearCookie("access_token", cookieOptions)
-    .status(200)
-    .json({ message: "Logout successful" });
-};
 // Get Users with Role-Based Access Control
 export const handleUsers = async (req: Request, res: Response) => {
   try {
-    const user: User | null = await CheckUserAuth(req);
+    const user = await CheckUserAuth(req);
     if (!user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -172,7 +38,8 @@ export const handleUsers = async (req: Request, res: Response) => {
       if (!user.teamId) {
         return res.status(403).json({ error: "Manager has no team" });
       }
-      where.OR = [{ teamId: user.teamId }, { role: Role.USER }];
+      where.teamId = user.teamId;
+      where.role = Role.USER;
     } else {
       //regular user can see only themselves
       if (!user.teamId) {
@@ -330,7 +197,7 @@ export const handleUsersRoleAssign = async (req: Request, res: Response) => {
           where: { id: userId as string },
           data: updateData,
         });
-      }
+      },
     );
     return res
       .status(200)

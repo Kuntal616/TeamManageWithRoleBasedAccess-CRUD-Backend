@@ -36,6 +36,8 @@ export interface User {
   teamId?: string;
   team?: Team;
   projectsCreated?: Project[];
+  resetToken?: string | null;
+  resetTokenExpiry?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
