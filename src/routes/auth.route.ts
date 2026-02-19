@@ -17,5 +17,6 @@ router.post("/logout", handleLogout); // logout route
 router.patch("/change-password", handleChangePassword); // change password route
 router.post("/forgot-password", handleForgotPassword); // forgot password route
 router.post("/reset-password", handleResetPassword); // reset password route
-router.post("/force-change-password", handleForceChangePassword);
+router.post("/force-change-password", handleForceChangePassword); // force change password route for admin to reset user password
+
 export default router;
