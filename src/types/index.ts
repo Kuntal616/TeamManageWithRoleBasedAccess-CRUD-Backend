@@ -38,6 +38,8 @@ export interface User {
   projectsCreated?: Project[];
   resetToken?: string | null;
   resetTokenExpiry?: Date | null;
+  mustChangePassword: boolean;
+  passwordChangedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }

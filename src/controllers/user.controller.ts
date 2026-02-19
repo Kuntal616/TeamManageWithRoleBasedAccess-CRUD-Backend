@@ -1,8 +1,14 @@
 import type { Request, Response } from "express";
 import { Role } from "../types/index.js";
-import { checkUserPermission, MAX_ADMINS, CheckUserAuth } from "../lib/auth.js";
+import {
+  checkUserPermission,
+  MAX_ADMINS,
+  CheckUserAuth,
+  hashedPassword,
+} from "../lib/auth.js";
 import { prisma } from "../lib/db.js";
 import type { Prisma } from "../generated/prisma/client.js";
+import crypto from "crypto";
 
 // Get Current Authenticated User
 
@@ -261,6 +267,53 @@ export const handleUserRemoveFromTeam = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error in handleUserRemoveFromTeam:", error);
+    if (
+      error instanceof Error &&
+      error.message.includes("Record to update not found.")
+    ) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const handleAdminResetUserPassword = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { userId } = req.params as { userId: string };
+    const user = await CheckUserAuth(req);
+    if (!user || !checkUserPermission(user, Role.ADMIN)) {
+      return res
+        .status(401)
+        .json({ error: "You are not authorized to reset user password" });
+    }
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!targetUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const temporaryPassword = crypto.randomBytes(8).toString("hex");
+    const hashedTempPassword = await hashedPassword(temporaryPassword);
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedTempPassword,
+        mustChangePassword: true,
+      },
+    });
+    // share the temporary password with admin through response or email in real application but here we will log it in the console for testing purpose
+    console.log(
+      `Temporary password for user ${targetUser.email}: ${temporaryPassword}`,
+    );
+    return res.status(200).json({
+      message:
+        "User password has been reset. Temporary password is logged in the server console.",
+    });
+  } catch (error) {
+    console.error("Error in handleAdminResetUserPassword:", error);
     if (
       error instanceof Error &&
       error.message.includes("Record to update not found.")

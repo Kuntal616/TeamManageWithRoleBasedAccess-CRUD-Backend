@@ -9,6 +9,7 @@ import {
 } from "../lib/auth.js";
 import { prisma } from "../lib/db.js";
 import cookieOptions from "../lib/cookie.config.js";
+import { error } from "console";
 
 // User Registration
 export const handleRegister = async (req: Request, res: Response) => {
@@ -50,6 +51,7 @@ export const handleRegister = async (req: Request, res: Response) => {
         name,
         email,
         password: hashPassword,
+        passwordChangedAt: new Date(),
         role,
         ...(teamId && {
           team: { connect: { id: teamId } },
@@ -104,6 +106,12 @@ export const handleLogin = async (req: Request, res: Response) => {
     const isPasswordValid = await verifyPassword(password, userFromDb.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid email or password" });
+    }
+    //if admin changed the password then force user to change password on the login
+    if (userFromDb.mustChangePassword) {
+      return res.status(403).json({
+        error: "Password must be changed, Please change your password",
+      });
     }
     //generate token
     const token = generateToken(userFromDb.id);
@@ -163,7 +171,7 @@ export const handleChangePassword = async (req: Request, res: Response) => {
     const hashedNewPassword = await hashedPassword(newPassword);
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedNewPassword },
+      data: { password: hashedNewPassword, passwordChangedAt: new Date() },
     });
     return res.status(200).json({ message: "Password changed successfully" });
   } catch (error) {
@@ -244,12 +252,68 @@ export const handleResetPassword = async (req: Request, res: Response) => {
       where: { id: user.id },
       data: {
         password: hashedNewPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+        passwordChangedAt: new Date(),
       },
     });
 
     return res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
     console.log("Error in handleResetPassword:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const handleForceChangePassword = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { email, newPassword, password } = req.body;
+    const tempPassword = password; // temporary password sent by admin to the user
+    if (!email || !newPassword || !tempPassword)
+      return res.status(400).json({ error: "All fields are required" });
+    const user = await prisma.user.findUnique({
+      where: { email: email },
+      include: { team: true },
+    });
+    if (!user) {
+      return res.status(404).json({ error: "User Not Found" });
+    }
+    const isValid = await verifyPassword(tempPassword, user.password);
+    if (!isValid)
+      return res.status(401).json({ error: "Incorrect Temporary Password" });
+    const hashedNewPassword = await hashedPassword(newPassword);
+    await prisma.user.update({
+      data: {
+        password: hashedNewPassword,
+        mustChangePassword: false,
+        passwordChangedAt: new Date(),
+      },
+      where: { id: user.id },
+    });
+
+    //generate token
+    const token = generateToken(user.id);
+    // respond with user data and set cookie
+    return res
+      .cookie("access_token", token, cookieOptions)
+      .status(200)
+      .json({
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          team: user.team,
+          teamId: user.teamId,
+          token, // include token in response body for the development convenience
+        },
+        message: "Login successful after password change",
+      });
+  } catch (error) {
+    console.error("Error in handleForceChangePassword:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
